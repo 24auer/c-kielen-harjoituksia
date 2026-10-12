@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-ohjelmoinnin harjoitukset</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --text: #1c1c1a; --muted: #6b6a64;
+    --border: #c9c8c2; --accent: #185FA5; --on-accent: #ffffff;
+    --ok: #2e7d32; --bad: #c62828; --code-bg: #fbfbfa; --code-text: #000000;
+    --c-kw: #0033B3; --c-type: #267F99; --c-str: #A31515; --c-com: #008000;
+    --c-pp: #7A3E9D; --c-num: #098658;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c1c1a; --surface: #2a2a27; --text: #f0efe8; --muted: #9c9a92;
+      --border: #55554f; --accent: #85B7EB; --on-accent: #1c1c1a;
+      --ok: #97C459; --bad: #F09595; --code-bg: #1e1e1e; --code-text: #d4d4d4;
+      --c-kw: #569CD6; --c-type: #4EC9B0; --c-str: #CE9178; --c-com: #6A9955;
+      --c-pp: #C586C0; --c-num: #B5CEA8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 16px; }
+  main { max-width: 800px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 24px; font-weight: 500; margin: 0 0 16px; }
+  select { font: inherit; font-size: 16px; padding: 10px 14px; min-height: 44px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+
+  .btn { font: inherit; font-size: 15px; font-weight: 500; min-height: 42px; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+  .score { margin-left: auto; font-size: 15px; color: var(--muted); font-weight: 500; }
+
+  .howto { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; font-size: 15px; }
+  .howto strong { font-weight: 500; }
+  .howto ol { margin: 8px 0 0; padding-left: 20px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 18px; }
+  .qnum { font-size: 13px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  .qtext { font-size: 17px; margin: 4px 0 14px; }
+
+  .opts { display: flex; flex-direction: column; gap: 10px; }
+  .opt { display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; font-size: 16px; padding: 12px 14px; }
+  .letter { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: var(--code-bg); border: 1px solid var(--border); font-weight: 500; font-size: 14px; flex-shrink: 0; }
+  .opt.right { border-color: var(--ok); background: var(--code-bg); }
+  .opt.right .letter { background: var(--ok); color: #fff; border-color: var(--ok); }
+  .opt.wrong { border-color: var(--bad); }
+  .opt.wrong .letter { background: var(--bad); color: #fff; border-color: var(--bad); }
+
+  .feedback { margin-top: 14px; font-size: 16px; }
+  .feedback.ok { color: var(--ok); font-weight: 500; }
+  .feedback.bad { color: var(--bad); font-weight: 500; }
+  .explain { margin-top: 6px; font-size: 15px; color: var(--muted); font-weight: 400; }
+
+  .editor { position: relative; border: 1px solid var(--border); border-radius: 8px; background: var(--code-bg); margin-top: 6px; }
+  .editor pre, .editor textarea { margin: 0; padding: 14px; font-family: Consolas, "Courier New", monospace; font-size: 15px; line-height: 1.5; tab-size: 4; white-space: pre; width: 100%; box-sizing: border-box; border: 0; }
+  .editor pre.hl { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; pointer-events: none; color: var(--code-text); background: transparent; }
+  .editor textarea { position: relative; display: block; min-height: 200px; resize: vertical; background: transparent; color: transparent; caret-color: var(--code-text); outline: none; overflow: auto; }
+  .c-kw { color: var(--c-kw); font-weight: 500; }
+  .c-type { color: var(--c-type); }
+  .c-str { color: var(--c-str); }
+  .c-com { color: var(--c-com); font-style: italic; }
+  .c-pp { color: var(--c-pp); }
+  .c-num { color: var(--c-num); }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .checks { margin: 14px 0 0; padding: 0; list-style: none; font-size: 15px; }
+  .checks li { padding: 4px 0; }
+  .checks .pass { color: var(--ok); }
+  .checks .fail { color: var(--bad); }
+  .note { font-size: 14px; color: var(--muted); margin: 8px 0; }
+  a { color: var(--accent); }
+  details { margin-top: 14px; }
+  details summary { cursor: pointer; font-size: 15px; color: var(--accent); font-weight: 500; padding: 6px 0; }
+  details textarea { width: 100%; min-height: 90px; padding: 10px; font-family: Consolas, "Courier New", monospace; font-size: 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--code-bg); color: var(--text); margin-top: 6px; }
+  pre.model { background: var(--code-bg); border: 1px solid var(--border); padding: 14px; border-radius: 8px; overflow-x: auto; font-family: Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.5; margin: 12px 0 0; white-space: pre; }
+</style>
+</head>
+<body>
+<main>
+  <h1>C-ohjelmoinnin harjoitukset</h1>
+
+  <div class="howto">
+    <strong>Miten testaan koodin?</strong>
+    <ol>
+      <li>Kirjoita koodi tehtävään ja paina <strong>Tarkista</strong>. Sivu tarkistaa, että tarvittavat rakenteet ovat mukana.</li>
+      <li>Aja koodi oikeasti: kopioi se <strong>Kopioi koodi</strong> -napilla Qt Creatoriin (New Project → Non-Qt Project → Plain C Application) ja paina <strong>Ctrl+R</strong>.</li>
+      <li>Tai käytä selainta: onlinegdb.com. Liitä tuloste vertailukenttään, jos tehtävässä on se.</li>
+    </ol>
+  </div>
+
+  <div class="bar">
+    <select id="topic" aria-label="Aihe"></select>
+    <span class="score" id="score"></span>
+  </div>
+
+  <div id="list"></div>
+</main>
+
+<script>
+const TOPICS = [
+  {
+    name: "printf ja rakenne",
+    items: [
+      { type: "mcq", q: "Mikä funktio kirjoittaa tekstiä näytölle C:ssä?", options: ["scanf", "printf", "fopen", "malloc"], answer: 1, explain: "printf tulostaa tekstin näytölle. scanf lukee syötettä, fopen avaa tiedoston." },
+      { type: "code", q: "Kirjoita ohjelma, joka tulostaa 'Hello World' ja rivinvaihdon.", starter: "#include <stdio.h>\n\nint main() {\n    \n    return 0;\n}",
+        checks: [
+          { re: /#include\s*<stdio\.h>/, msg: "#include <stdio.h> on mukana" },
+          { re: /printf\s*\(\s*"Hello World\\n"\s*\)\s*;/, msg: "printf tulostaa \"Hello World\\n\"" }
+        ],
+        model: "#include <stdio.h>\n\nint main() {\n    printf(\"Hello World\\n\");\n    return 0;\n}",
+        expected: "Hello World" }
+    ]
+  },
+  {
+    name: "Muuttujatyypit",
+    items: [
+      { type: "mcq", q: "Mikä on C:n tyyppi kokonaisluvulle?", options: ["float", "char", "int", "string"], answer: 2, explain: "int on kokonaislukutyyppi. C:ssä ei ole string-tyyppiä perustyyppinä." },
+      { type: "mcq", q: "Mikä otsikkotiedosto tarvitaan bool-tyypin käyttöön C:ssä?", options: ["<stdio.h>", "<stdbool.h>", "<string.h>", "<stdlib.h>"], answer: 1, explain: "C:ssä bool tulee <stdbool.h>-tiedostosta. C++:ssa sitä ei tarvita." },
+      { type: "code", q: "Määrittele float-muuttuja nimeltä hinta arvolla 9.5 ja char-muuttuja kirjain arvolla 'A'.", starter: "",
+        checks: [
+          { re: /float\s+hinta\s*=\s*9\.5\s*;/, msg: "float hinta = 9.5;" },
+          { re: /char\s+kirjain\s*=\s*'A'\s*;/, msg: "char kirjain = 'A';" }
+        ],
+        model: "float hinta = 9.5;\nchar kirjain = 'A';" }
+    ]
+  },
+  {
+    name: "Osoitteet ja scanf",
+    items: [
+      { type: "mcq", q: "Mikä operaattori antaa muuttujan osoitteen?", options: ["*", "&", "%", "#"], answer: 1, explain: "& antaa muuttujan osoitteen. * käytetään osoittimen kautta lukemiseen." },
+      { type: "mcq", q: "Mikä scanf-muotoilu lukee kokonaisluvun?", options: ["%f", "%c", "%d", "%s"], answer: 2, explain: "%d on kokonaisluku. %f on desimaaliluku, %c merkki, %s merkkijono." },
+      { type: "code", q: "Lue käyttäjältä kokonaisluku muuttujaan n.", starter: "#include <stdio.h>\n\nint main() {\n    \n    return 0;\n}",
+        checks: [
+          { re: /int\s+n\s*;/, msg: "int n; on määritelty" },
+          { re: /scanf\s*\(\s*"%d"\s*,\s*&n\s*\)\s*;/, msg: "scanf(\"%d\", &n); on oikein" }
+        ],
+        model: "int n;\nscanf(\"%d\", &n);" }
+    ]
+  },
+  {
+    name: "Operaattorit ja typecast",
+    items: [
+      { type: "mcq", q: "Mitä 17 % 5 on?", options: ["2", "3", "3.4", "5"], answer: 0, explain: "Jakojäännös: 17 = 3·5 + 2, eli tulos on 2." },
+      { type: "mcq", q: "Mitä (int)3.9 on?", options: ["4", "3.9", "3", "3.0"], answer: 2, explain: "Typecast katkaisee desimaalit, eikä pyöristä. Tulos on 3." },
+      { type: "code", q: "Laske kahden luvun a ja b jakojäännös ja tallenna se muuttujaan r.", starter: "int a = 17;\nint b = 5;\n",
+        checks: [
+          { re: /int\s+r\s*=\s*a\s*%\s*b\s*;/, msg: "int r = a % b; on oikein" }
+        ],
+        model: "int r = a % b;" }
+    ]
+  },
+  {
+    name: "Taulukot ja merkkijonot",
+    items: [
+      { type: "mcq", q: "Kuinka monta alkiota on taulukossa int t[5]?", options: ["4", "5", "6", "0"], answer: 1, explain: "Taulukon koko on 5, mutta indeksit ovat 0–4." },
+      { type: "mcq", q: "Mikä on C-taulukon ensimmäinen indeksi?", options: ["1", "0", "-1", "5"], answer: 1, explain: "C-taulukoissa indeksöinti alkaa nollasta." },
+      { type: "code", q: "Määrittele taulukko luvut, jossa on arvot 1, 2 ja 3, ja tulosta toinen alkio.", starter: "#include <stdio.h>\n\nint main() {\n    \n    return 0;\n}",
+        checks: [
+          { re: /int\s+luvut\s*\[\s*3\s*\]\s*=\s*\{\s*1\s*,\s*2\s*,\s*3\s*\}\s*;/, msg: "int luvut[3] = {1, 2, 3};" },
+          { re: /printf\s*\([^)]*luvut\s*\[\s*1\s*\]/, msg: "tulostaa luvut[1]" }
+        ],
+        model: "int luvut[3] = {1, 2, 3};\nprintf(\"%d\\n\", luvut[1]);" }
+    ]
+  },
+  {
+    name: "Ehtolauseet ja loogiset operaattorit",
+    items: [
+      { type: "mcq", q: "Mikä on tulos, kun || (tai) -operaattorin molemmat puolet ovat epätosia?", options: ["tosi", "epätosi"], answer: 1, explain: "|| on tosi, jos vähintään yksi puoli on tosi. Jos molemmat ovat epätosia, tulos on epätosi." },
+      { type: "code", q: "Kirjoita if-else, joka tulostaa 'parillinen', jos n on parillinen, muuten 'pariton'.", starter: "int n = 7;\n",
+        checks: [
+          { re: /if\s*\(\s*n\s*%\s*2\s*==\s*0\s*\)/, msg: "if (n % 2 == 0)" },
+          { re: /else/, msg: "else-haara on mukana" }
+        ],
+        model: "if (n % 2 == 0) {\n    printf(\"parillinen\\n\");\n} else {\n    printf(\"pariton\\n\");\n}" }
+    ]
+  },
+  {
+    name: "Switch-case",
+    items: [
+      { type: "mcq", q: "Mikä avainsana estää siirtymisen seuraavaan case-haaraan?", options: ["stop", "break", "end", "exit"], answer: 1, explain: "break lopettaa switch-lohkon suorituksen. Ilman sitä ohjelma jatkaa seuraaviin haaroihin." },
+      { type: "code", q: "Kirjoita switch, jossa x = 1 tulostaa 'yksi', ja default tulostaa 'muu'.", starter: "int x = 1;\n",
+        checks: [
+          { re: /switch\s*\(\s*x\s*\)/, msg: "switch (x)" },
+          { re: /case\s+1\s*:/, msg: "case 1:" },
+          { re: /break\s*;/, msg: "break;" },
+          { re: /default\s*:/, msg: "default:" }
+        ],
+        model: "switch (x) {\n    case 1:\n        printf(\"yksi\\n\");\n        break;\n    default:\n        printf(\"muu\\n\");\n}" }
+    ]
+  },
+  {
+    name: "Silmukat",
+    items: [
+      { type: "mcq", q: "Mikä silmukka sopii, kun toistojen määrä tiedetään etukäteen?", options: ["for", "while", "do-while", "goto"], answer: 0, explain: "for sopii, kun laskuri ja toistojen määrä ovat tiedossa. while sopii, kun ehto on tärkein." },
+      { type: "code", q: "Tulosta luvut 1–5 for-silmukalla, yksi luku per rivi.", starter: "#include <stdio.h>\n\nint main() {\n    \n    return 0;\n}",
+        expected: "1\n2\n3\n4\n5",
+        checks: [
+          { re: /for\s*\(\s*int\s+i\s*=\s*1\s*;\s*i\s*<=\s*5\s*;\s*i\+\+\s*\)/, msg: "for (int i = 1; i <= 5; i++)" },
+          { re: /printf\s*\([^)]*i[^)]*\)/, msg: "tulostaa i" }
+        ],
+        model: "for (int i = 1; i <= 5; i++) {\n    printf(\"%d\\n\", i);\n}" }
+    ]
+  },
+  {
+    name: "Funktiot",
+    items: [
+      { type: "mcq", q: "Milloin käytetään void-paluutyyppiä?", options: ["Kun funktio palauttaa luvun", "Kun funktio ei palauta arvoa", "Kun funktio ottaa vain merkkejä", "Aina"], answer: 1, explain: "void tarkoittaa, että funktio ei palauta arvoa." },
+      { type: "code", q: "Kirjoita funktio int kerro(int a, int b), joka palauttaa tulon.", starter: "",
+        checks: [
+          { re: /int\s+kerro\s*\(\s*int\s+a\s*,\s*int\s+b\s*\)/, msg: "int kerro(int a, int b)" },
+          { re: /return\s+a\s*\*\s*b\s*;/, msg: "return a * b;" }
+        ],
+        model: "int kerro(int a, int b) {\n    return a * b;\n}" }
+    ]
+  },
+  {
+    name: "Merkkijonofunktiot",
+    items: [
+      { type: "mcq", q: "Mikä funktio palauttaa merkkijonon pituuden?", options: ["strcpy", "strlen", "strcmp", "strcat"], answer: 1, explain: "strlen palauttaa merkkijonon pituuden. strcpy kopioi, strcmp vertaa." },
+      { type: "code", q: "Kopioi merkkijono src muuttujaan dst ja tulosta dst:n pituus strlen-funktiolla.", starter: "#include <stdio.h>\n#include <string.h>\n\nint main() {\n    char src[] = \"kissa\";\n    char dst[20];\n    \n    return 0;\n}",
+        checks: [
+          { re: /strcpy\s*\(\s*dst\s*,\s*src\s*\)\s*;/, msg: "strcpy(dst, src);" },
+          { re: /strlen\s*\(\s*dst\s*\)/, msg: "strlen(dst)" }
+        ],
+        model: "strcpy(dst, src);\nprintf(\"%d\\n\", (int)strlen(dst));" }
+    ]
+  },
+  {
+    name: "Struct ja typedef",
+    items: [
+      { type: "mcq", q: "Mitä typedef tekee?", options: ["Luo uuden muuttujan", "Antaa tyypille uuden nimen", "Poistaa tyypin", "Tulostaa tyypin"], answer: 1, explain: "typedef antaa olemassa olevalle tyypille uuden nimen, esimerkiksi typedef struct ... Henkilo;" },
+      { type: "code", q: "Määrittele struct, jolla on int ika, ja anna sille typedef-nimi Henkilo.", starter: "",
+        checks: [
+          { re: /typedef\s+struct/, msg: "typedef struct" },
+          { re: /int\s+ika\s*;/, msg: "int ika;" },
+          { re: /\}\s*Henkilo\s*;/, msg: "} Henkilo;" }
+        ],
+        model: "typedef struct {\n    int ika;\n} Henkilo;" }
+    ]
+  },
+  {
+    name: "Osoittimet",
+    items: [
+      { type: "mcq", q: "Mikä merkki lukee osoittimen osoittaman arvon (dereferointi)?", options: ["&p", "*p", "%p", "p[]"], answer: 1, explain: "*p antaa arvon, johon osoitin p osoittaa. &p antaa osoittimen oman osoitteen." },
+      { type: "code", q: "Määrittele a = 5, osoitin p joka osoittaa a:han, ja muuta a:n arvo osoittimen kautta arvoon 10.", starter: "",
+        checks: [
+          { re: /int\s+a\s*=\s*5\s*;/, msg: "int a = 5;" },
+          { re: /int\s*\*\s*p\s*=\s*&a\s*;/, msg: "int *p = &a;" },
+          { re: /\*p\s*=\s*10\s*;/, msg: "*p = 10;" }
+        ],
+        model: "int a = 5;\nint *p = &a;\n*p = 10;" }
+    ]
+  },
+  {
+    name: "Tiedostot",
+    items: [
+      { type: "mcq", q: "Mikä tila avaa tiedoston lisäystilaan, jolloin vanha data säilyy?", options: ["r", "w", "a", "w+"], answer: 2, explain: "a (append) lisää dataa tiedoston loppuun. w tyhjentää tiedoston avattaessa." },
+      { type: "mcq", q: "Mitä perror tekee?", options: ["Lukee tiedoston", "Tulostaa virheilmoituksen", "Sulkee tiedoston", "Luo tiedoston"], answer: 1, explain: "perror tulostaa viimeisimmän virheen kuvauksen, esimerkiksi tiedoston avaamisen epäonnistuessa." },
+      { type: "code", q: "Avaa tiedosto data.txt lukemiseen, tarkista onnistuiko avaus (NULL) ja sulje tiedosto.", starter: "#include <stdio.h>\n\nint main() {\n    \n    return 0;\n}",
+        checks: [
+          { re: /fopen\s*\(\s*"data\.txt"\s*,\s*"r"\s*\)/, msg: "fopen(\"data.txt\", \"r\")" },
+          { re: /if\s*\(\s*\w+\s*==\s*NULL\s*\)/, msg: "if (f == NULL)" },
+          { re: /fclose\s*\(/, msg: "fclose(...)" }
+        ],
+        model: "FILE *f = fopen(\"data.txt\", \"r\");\nif (f == NULL) {\n    perror(\"virhe\");\n    return 1;\n}\nfclose(f);" }
+    ]
+  }
+];
+
+const KEYWORDS = new Set(['if','else','for','while','do','switch','case','default','break','continue','return','struct','typedef','sizeof','const','static','void','unsigned','signed','enum','union','goto']);
+const TYPES = new Set(['int','float','double','char','long','short','bool','FILE','size_t','true','false','NULL']);
+const TOKEN_RE = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(^[ \t]*#[^\n]*)|([A-Za-z_]\w*)|(\b\d+(?:\.\d+)?\b)/gm;
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlight(code) {
+  return escapeHtml(code).replace(TOKEN_RE, (m, com, str, pp, id, num) => {
+    if (com) return '<span class="c-com">' + m + '</span>';
+    if (str) return '<span class="c-str">' + m + '</span>';
+    if (pp) return '<span class="c-pp">' + m + '</span>';
+    if (id) {
+      if (KEYWORDS.has(m)) return '<span class="c-kw">' + m + '</span>';
+      if (TYPES.has(m)) return '<span class="c-type">' + m + '</span>';
+      return m;
+    }
+    if (num) return '<span class="c-num">' + m + '</span>';
+    return m;
+  }) + '\n';
+}
+
+const topicSel = document.getElementById('topic');
+const list = document.getElementById('list');
+const scoreEl = document.getElementById('score');
+const done = new Set();
+
+TOPICS.forEach((t, i) => {
+  const o = document.createElement('option');
+  o.value = i;
+  o.textContent = t.name;
+  topicSel.appendChild(o);
+});
+
+function updateScore() {
+  let total = 0;
+  TOPICS.forEach(t => total += t.items.length);
+  scoreEl.textContent = 'Ratkaistu: ' + done.size + ' / ' + total;
+}
+
+function el(tag, attrs, text) {
+  const n = document.createElement(tag);
+  if (attrs) Object.assign(n, attrs);
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+function renderMcq(item, key, container) {
+  const opts = el('div', { className: 'opts' });
+  const fb = el('div', { className: 'feedback' });
+  item.options.forEach((opt, i) => {
+    const b = el('button', { type: 'button', className: 'btn opt' });
+    b.appendChild(el('span', { className: 'letter' }, String.fromCharCode(97 + i)));
+    b.appendChild(el('span', null, opt));
+    b.addEventListener('click', () => {
+      if (done.has(key)) return;
+      [...opts.children].forEach(c => c.disabled = true);
+      done.add(key);
+      if (i === item.answer) {
+        b.classList.add('right');
+        fb.className = 'feedback ok';
+        fb.textContent = 'Oikein!';
+      } else {
+        b.classList.add('wrong');
+        opts.children[item.answer].classList.add('right');
+        fb.className = 'feedback bad';
+        fb.textContent = 'Väärin. Oikea vastaus on ' + String.fromCharCode(97 + item.answer) + '.';
+      }
+      fb.appendChild(el('div', { className: 'explain' }, item.explain));
+      updateScore();
+    });
+    opts.appendChild(b);
+  });
+  container.appendChild(opts);
+  container.appendChild(fb);
+}
+
+function renderCode(item, key, container) {
+  const editor = el('div', { className: 'editor' });
+  const hl = el('pre', { className: 'hl' });
+  hl.setAttribute('aria-hidden', 'true');
+  const ta = el('textarea', { spellcheck: false });
+  ta.value = item.starter || '';
+  editor.appendChild(hl);
+  editor.appendChild(ta);
+  container.appendChild(editor);
+
+  function update() {
+    hl.innerHTML = highlight(ta.value);
+  }
+  ta.addEventListener('input', update);
+  ta.addEventListener('scroll', () => { hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; });
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = ta.selectionStart, end = ta.selectionEnd;
+      ta.value = ta.value.substring(0, s) + '    ' + ta.value.substring(end);
+      ta.selectionStart = ta.selectionEnd = s + 4;
+      update();
+    }
+  });
+  update();
+
+  const row = el('div', { className: 'row' });
+  const checkBtn = el('button', { type: 'button', className: 'btn primary' }, 'Tarkista');
+  const copyBtn = el('button', { type: 'button', className: 'btn' }, 'Kopioi koodi');
+  const modelBtn = el('button', { type: 'button', className: 'btn' }, 'Näytä malli');
+  row.appendChild(checkBtn);
+  row.appendChild(copyBtn);
+  row.appendChild(modelBtn);
+  container.appendChild(row);
+
+  const out = el('ul', { className: 'checks' });
+  container.appendChild(out);
+
+  const modelBox = el('pre', { className: 'model' }, item.model);
+  modelBox.style.display = 'none';
+  container.appendChild(modelBox);
+
+  checkBtn.addEventListener('click', () => {
+    out.innerHTML = '';
+    const code = ta.value;
+    let allOk = true;
+    item.checks.forEach(c => {
+      const ok = c.re.test(code);
+      if (!ok) allOk = false;
+      out.appendChild(el('li', { className: ok ? 'pass' : 'fail' }, (ok ? 'OK: ' : 'Puuttuu: ') + c.msg));
+    });
+    if (allOk) {
+      done.add(key);
+      updateScore();
+      out.appendChild(el('li', { className: 'pass' }, 'Kaikki tarkistukset menivät läpi. Aja koodi Qt Creatorissa tai onlinegdb.com-sivulla varmistaaksesi tuloksen.'));
+    }
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(ta.value);
+      copyBtn.textContent = 'Kopioitu!';
+    } catch (e) {
+      ta.select();
+      document.execCommand('copy');
+      copyBtn.textContent = 'Kopioitu!';
+    }
+    setTimeout(() => copyBtn.textContent = 'Kopioi koodi', 1500);
+  });
+
+  modelBtn.addEventListener('click', () => {
+    modelBox.style.display = modelBox.style.display === 'none' ? 'block' : 'none';
+  });
+
+  if (item.expected !== undefined) {
+    const details = el('details');
+    details.appendChild(el('summary', null, 'Vertaa ohjelman tulostetta'));
+    details.appendChild(el('div', { className: 'note' }, 'Aja koodi Qt Creatorissa (Ctrl+R) tai onlinegdb.com-sivulla, kopioi tuloste tähän ja vertaa.'));
+    const outTa = el('textarea', { spellcheck: false });
+    outTa.placeholder = 'Liitä tuloste tähän';
+    details.appendChild(outTa);
+    const cmpBtn = el('button', { type: 'button', className: 'btn' }, 'Vertaa');
+    cmpBtn.style.marginTop = '8px';
+    const cmpRes = el('div', { className: 'feedback' });
+    cmpBtn.addEventListener('click', () => {
+      const norm = s => s.replace(/\r/g, '').trim();
+      if (norm(outTa.value) === norm(item.expected)) {
+        cmpRes.className = 'feedback ok';
+        cmpRes.textContent = 'Tuloste vastaa odotettua.';
+      } else {
+        cmpRes.className = 'feedback bad';
+        cmpRes.textContent = 'Tuloste ei vastaa odotettua. Odotettu tuloste:';
+        cmpRes.appendChild(el('pre', { className: 'model' }, item.expected));
+      }
+    });
+    details.appendChild(cmpBtn);
+    details.appendChild(cmpRes);
+    container.appendChild(details);
+  }
+}
+
+function renderTopic(index) {
+  list.innerHTML = '';
+  const topic = TOPICS[index];
+  topic.items.forEach((item, i) => {
+    const key = index + '-' + i;
+    const card = el('div', { className: 'card' });
+    card.appendChild(el('div', { className: 'qnum' }, 'Tehtävä ' + (i + 1) + ' · ' + (item.type === 'mcq' ? 'Monivalinta' : 'Koodaus')));
+    card.appendChild(el('div', { className: 'qtext' }, item.q));
+    if (item.type === 'mcq') renderMcq(item, key, card);
+    else renderCode(item, key, card);
+    list.appendChild(card);
+  });
+}
+
+topicSel.addEventListener('change', () => renderTopic(Number(topicSel.value)));
+renderTopic(0);
+updateScore();
+</script>
+</body>
+</html>
